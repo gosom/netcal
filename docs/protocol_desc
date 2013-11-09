@@ -1,0 +1,61 @@
+Each machine maintains a set of connected machines in the
+network.
+
+There should be a mechanism to keep these list synchronized
+between machines.
+
+Also each machine has it's own set of appointments stored
+in an SQLite database.
+
+Join Network:
+    We assume that a machine S is always on the network.
+    When a new machine N "joins" the network it should know
+    the ip address of an already connected machine.
+    It should send a HELLO message to S
+
+    S should respond with a WELCOME message containing:
+        - the set of the connected machines
+        - a snapshot of the database
+
+
+    When N receives the WELCOME message it should:
+
+        1. create the set of the connected machines
+        2. merges his database of appointments with the received.
+
+    After that N should PROPAGATE the snapshot of his database to
+    all machines.
+
+    PROPAGATE should contain:
+    flag init
+    the changes of the database merged from WELCOME msg
+    the ip of the machine
+
+When a machine X receives a PROPAGATE message it should:
+    1. Add the received IP in the set
+    2. Merges the changes received with his local database
+
+When a machine creates/modifies an appointment it should
+send to all machines a PROPAGATE message with the changes
+
+When a machine A wants to sign off the network it should send
+a BYE message to any machine B.
+
+
+When X receives a bye message  it should remove the B
+from his set and notifying the remaining machines
+by sending a MREM message to the remaining machines.
+
+When the remaining machines receive the MREM message the
+delete the specified machine from their sets.
+
+
+
+
+
+
+
+
+
+
+
