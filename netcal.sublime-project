@@ -5,5 +5,22 @@
 			"follow_symlinks": true,
 			"path": "/home/giorgos/projects/netcal"
 		}
-	]
+	],
+
+    "settings": {
+        "python_interpreter": "/home/giorgos/.virtualenvs/netcal/bin/python",
+        "complete_all_parameters": true,
+    },
+
+    "build_systems":
+
+        [
+            {
+                "cmd": ["/home/giorgos/.virtualenvs/netcal/bin/python","${file}","command1"],
+                "env": {"PYTHONPATH":"/home/giorgos/projects/netcal/"},
+                "name": "pythonProjectTestBase"
+            }
+        ]
+
+
 }
