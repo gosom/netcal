@@ -34,4 +34,7 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-netcal.sublime-workspace
+*.sublime-workspace
+
+# log files
+*.log
