@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 16:18:35
-# @Last Modified by:   Giorgos Komninos
-# @Last Modified time: 2013-11-10 18:03:55
+# @Last Modified by:   giorgos
+# @Last Modified time: 2013-11-10 22:46:43
 import logging
 import xmlrpclib
 import sys
 import time
+import atexit
 
 from netcal.srv.server import Server
 from netcal.srv.services import NetCalService
@@ -28,9 +29,15 @@ class Node(object):
         self.host, self.port = host, port
         self.db = None
         self.join = join
-        self.connected_nodes = []
+        self.proxies = []
+        atexit.register(self.leave) # signoff when program terminates
+        self.srv = Server(service=NetCalService([(self.host, self.port)]),
+                          host=self.host,
+                          port=self.port)
+        self.srv.start()
 
         if self.join:
+            
             self.log.debug('''Node should join the calendar
                            network using node: %s''', self.join)
             try:
@@ -38,9 +45,6 @@ class Node(object):
             except Exception, e:
                 sys.exit(str(e))
 
-        self.srv = Server(service=NetCalService(), host=self.host,
-                          port=self.port)
-        self.srv.start()
         while True:
             try:
                 time.sleep(0.2)
@@ -56,16 +60,32 @@ class Node(object):
         target_list = self.join.split(':')
         host, port = target_list[0], int(target_list[1])
         assert utils.check_connection(host, port) == True
-        url = 'http://%s:%d' % (host, port)
-        self.connected_nodes.append(self.create_proxy(url))
-        self.say_hello()
+        self.proxies.append(self.create_proxy(host, port))
+        self.say_hello(host, port)
+        self.synchronize(host, port)
 
-    def create_proxy(self, url):
+    def create_proxy(self, host, port):
+        url = 'http://%s:%d' % (host, port)
+        self.log.debug('Creating proxy: %s', url)
         return xmlrpclib.ServerProxy(url)
 
-    def say_hello(self):
-        proxy = self.connected_nodes[0]
-        print proxy.hello()
+    def say_hello(self, to_host, to_port):
+        """says hello to host:port"""
+        self.srv.connected_clients = self.proxies[0].hello()
+        self.log.debug('We got %d connected_clients', 
+                       len(self.srv.connected_clients))
+        for host, port in self.srv.connected_clients:
+            if host != to_host and port != to_port:
+                self.proxies.append(create_proxy(host, port))
+
+    def synchronize(self, from_host, from_port):
+        snapshot = self.proxies[0].pull(self.host, self.port)
+        print snapshot
+
+    def leave(self):
+        for p in self.proxies:
+            p.sign_off(self.host, self.port)
+        self.log.debug('Node left network')
 
 
 if __name__ == '__main__':

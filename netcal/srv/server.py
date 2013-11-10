@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # @Author: giorgos
 # @Date:   2013-11-10 11:58:37
-# @Last Modified by:   Giorgos Komninos
-# @Last Modified time: 2013-11-10 16:08:43
+# @Last Modified by:   giorgos
+# @Last Modified time: 2013-11-10 22:30:11
 import logging
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import threading
@@ -22,9 +22,10 @@ class Server(threading.Thread):
         self.daemon = True
         self.log.debug('Starting xml-rpc server')
         assert port in xrange(0, 65535)
+        self.service = service
         self.srv = SimpleXMLRPCServer((host, port),
                                       logRequests=True)
-        self.srv.register_instance(service)
+        self.srv.register_instance(self.service)
         self.kill_received = False
         self.log.debug('Server is ready')
 
