@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-10 11:58:37
 # @Last Modified by:   Giorgos Komninos
-# @Last Modified time: 2013-11-10 13:23:42
+# @Last Modified time: 2013-11-10 16:08:43
 import logging
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import threading
@@ -45,5 +45,5 @@ if __name__ == '__main__':
         try:
             pass
         except KeyboardInterrupt:
-            print 'Ctrl-C receive'
+            print 'Ctrl-C received'
             server.kill_received = True

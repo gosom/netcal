@@ -17,8 +17,8 @@
         [
             {
                 "cmd": ["/home/giorgos/.virtualenvs/netcal/bin/python","${file}","command1"],
-                "env": {"PYTHONPATH":"/home/giorgos/projects/netcal/"},
-                "name": "pythonProjectTestBase"
+                "env": {"$PYTHONPATH":"/home/giorgos/projects/netcal/"},
+                "name": "netcal"
             }
         ]
 

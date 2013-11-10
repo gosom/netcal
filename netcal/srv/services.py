@@ -3,7 +3,7 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 12:27:46
 # @Last Modified by:   Giorgos Komninos
-# @Last Modified time: 2013-11-10 13:39:16
+# @Last Modified time: 2013-11-10 17:40:37
 import logging
 import os
 
@@ -13,6 +13,10 @@ class NetCalService(object):
 
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
+
+    def hello(self,):
+        self.log.debug('Calling hello method')
+        return 'hello client'
 
     def list(self, dir_name):
         """This is a demo funtion for testing purposes.
