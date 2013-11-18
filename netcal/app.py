@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-17 13:43:30
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 19:35:22
+# @Last Modified time: 2013-11-18 21:36:26
 import time
 import logging
 import sys
@@ -47,7 +47,8 @@ class NetCalCli(Cmd):
     @options([make_option('-t', '--datetime', help='Datetime of appointment'),
              make_option('-d', '--duration', help='''Duration of the appointment.
                          DEFAULT 1'''),
-             make_option('-e', '--header', help='Header of the appointment'),
+             make_option('-e', '--header', help='Header of the appointment',
+                         type="string"),
              make_option('-c', '--comment', help='''Comment of the appointment.
                          Default empty''')
              ])
@@ -76,6 +77,8 @@ class NetCalCli(Cmd):
              help='Enable to list all appointments. DEFAULT TRUE'),
              ])
     def do_list(self, command, opts):
+        if not self.node:
+            sys.stderr('Please first call init \n')
         if opts.all:
             self.__print_list(self.node.list())
         else:

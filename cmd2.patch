@@ -1,0 +1,19 @@
+--- cmd2.py	2013-11-18 21:23:35.934071795 +0100
++++ cmd2.py.new	2013-11-18 21:23:25.047852319 +0100
+@@ -41,6 +41,7 @@
+ from code import InteractiveConsole, InteractiveInterpreter
+ from optparse import make_option
+ import pyparsing
++import shlex
+ 
+ __version__ = '0.6.6.1'
+ 
+@@ -137,7 +138,7 @@
+         optionParser._func = func
+         def new_func(instance, arg):
+             try:
+-                opts, newArgList = optionParser.parse_args(arg.split())
++                opts, newArgList = optionParser.parse_args(shlex.split(arg))
+                 # Must find the remaining args in the original argument list, but 
+                 # mustn't include the command itself
+                 #if hasattr(arg, 'parsed') and newArgList[0] == arg.parsed.command:
