@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-16 16:44:10
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-17 13:23:55
+# @Last Modified time: 2013-11-18 18:55:36
 import sqlite3
 import logging
 import random
@@ -49,7 +49,7 @@ class DB(object):
     def insert(self, dt, dur, he, com):
         sql = '''INSERT INTO `appointments`
                 (`uid`, `datetime`, `duration`, `header`,
-                 `comment`, `deleted` INTEGER DEFAULT 0, `last_modified`)
+                 `comment`, `last_modified`)
                 VALUES(?, ?, ?, ?, ?, ?)'''
 
         params = (self._generate_random_uid(), dt, dur, he, com,
@@ -59,7 +59,7 @@ class DB(object):
         try:
             cur.execute(sql, params)
         except:
-            self.log.exception('Exception inserting')
+            self.log.exception('Exception inserting: %s: %s', sql, str(params))
             raise
         else:
             self.conn.commit()
@@ -97,19 +97,9 @@ class DB(object):
                 cur.execute(sql)
         except:
             self.log.exception('cannot get updated rows')
-            print sql
-            print params
             raise
         else:
-            to_return = []
-            rows = cur.fetchall()
-            for r in rows:
-                to_return.append({'uid': r[0],
-                                 'datetime': r[1],
-                                 'duration': r[2],
-                                 'header': r[3],
-                                 'comment': r[4],
-                                 'last_modified': r[5]})
+            to_return = self.__create_return_list(cur.fetchall())
             return to_return
         finally:
             cur.close()
@@ -124,7 +114,20 @@ class DB(object):
         pass
 
     def get_all(self):
-        pass
+        sql = '''SELECT `uid`, `datetime`, `duration`, `header`, `comment`,
+                `last_modified`
+                FROM appointments WHERE 1'''
+        cur = self.conn.cursor()
+        try:
+            cur.execute(sql)
+        except:
+            self.log.exception('Cannot select appointments')
+            raise
+        else:
+            to_return = self.__create_return_list(cur.fetchall())
+            return to_return
+        finally:
+            cur.close()
 
     def apply_updates(self, upd_list):
         sql = '''REPLACE INTO appointments(`uid`, `datetime`, `duration`, `header`,
@@ -133,7 +136,6 @@ class DB(object):
         params = [(r['uid'], r['datetime'], r['duration'], r['header'],
                    r['comment'], r['last_modified']) for r in upd_list ]
         cur = self.conn.cursor()
-        print 'OK'
         try:
             cur.executemany(sql, params)
         except:
@@ -143,6 +145,17 @@ class DB(object):
             self.conn.commit()
         finally:
             cur.close()
+
+    def __create_return_list(self, rows):
+        to_return = []
+        for r in rows:
+            to_return.append({'uid': r[0],
+                             'datetime': r[1],
+                             'duration': r[2],
+                             'header': r[3],
+                             'comment': r[4],
+                             'last_modified': r[5]})
+        return to_return
 
 if __name__ == '__main__':
 

@@ -3,7 +3,7 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 16:18:35
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-17 13:32:59
+# @Last Modified time: 2013-11-18 18:53:51
 import logging
 import xmlrpclib
 import sys
@@ -52,27 +52,32 @@ class Node(object):
         and finally synchronizes the db from address
         Parameters
         :addess : the remote address i.e. ip:port"""
+        self.log.debug('Attempting to connect to %s', address)
         # TODO validate address
-        self.connected_clients[address] = self.create_proxy(address)
-        #
-        proxy = self.get_proxy(address)
-        clients_list = proxy.get_clients()
-        self.log.debug('We got %d clients', len(clients_list))
-        for c_address in clients_list:
-            if c_address not in self.connected_clients:
-                self.log.debug('Adding %s to connected_clients', c_address)
-                self.connected_clients[c_address] = None
-        for address in self.connected_clients:
+        try:
+            self.connected_clients[address] = self.create_proxy(address)
             proxy = self.get_proxy(address)
-            proxy.signin(self.my_address)
-        upd_ts = self.db.get_max_timestamp()
-        if upd_ts is None:
-            upd_ts = ''
-        upd_rows = proxy.pull(self.my_address, upd_ts)
-        if upd_rows:
-           self.log.debug('we got %d updated rows', len(upd_rows))
-           self.db.apply_updates(upd_rows)
-           self.log.debug('succesfully updated db')
+            clients_list = proxy.get_clients()
+            self.log.debug('We got %d clients', len(clients_list))
+            for c_address in clients_list:
+                if c_address not in self.connected_clients:
+                    self.log.debug('Adding %s to connected_clients', c_address)
+                    self.connected_clients[c_address] = None
+            for address in self.connected_clients:
+                proxy = self.get_proxy(address)
+                proxy.signin(self.my_address)
+            upd_ts = self.db.get_max_timestamp()
+            if upd_ts is None:
+                upd_ts = ''
+            upd_rows = proxy.pull(self.my_address, upd_ts)
+            if upd_rows:
+               self.log.debug('we got %d updated rows', len(upd_rows))
+               self.db.apply_updates(upd_rows)
+               self.log.debug('succesfully updated db')
+            return True
+        except:
+            self.log.exception('An exception occured while attempting to connect')
+            return False
 
     def leave(self):
         for a in self.connected_clients:
@@ -80,6 +85,29 @@ class Node(object):
                 p = self.get_proxy(a)
                 p.sign_off(self.my_address)
         self.log.debug('Node left network')
+
+    def add(self, date_time, duration, header, comment):
+        '''adds an appointment to the database and propagates
+        the appointment to the connected_clients'''
+        try:
+            self.db.insert(dt=date_time, dur=duration, he=header, com=comment)
+        except Exception:
+            self.log.error('cannot insert appointment: %s %s %s %s',
+                           date_time, duration, header, comment)
+            return False
+        else:
+            self.log.debug('appointment %s %s was added', date_time, header)
+            return True
+
+    def list(self):
+        '''returns a list with all appointments'''
+        try:
+            to_return = self.db.get_all()
+        except:
+            self.log.exception('cannot get list from database')
+            return False
+        else:
+            return to_return
 
     def create_proxy(self, address):
         """Creates a proxy object for the address"""
