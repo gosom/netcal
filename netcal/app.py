@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-17 13:43:30
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 21:36:26
+# @Last Modified time: 2013-11-18 22:43:01
 import time
 import logging
 import sys
@@ -83,6 +83,54 @@ class NetCalCli(Cmd):
             self.__print_list(self.node.list())
         else:
             sys.stderr.write('Not implemented yet\n')
+
+    @options([make_option('-i', '--id', action='store',
+             help='id to delete'),
+             ])
+    def do_delete(self, command, opts):
+        if not self.node:
+            sys.stderr.write('Please call init first\n')
+            return False
+        if not opts.id:
+            sys.stderr.write('Please give the id you wish to delete\n')
+            return False
+        ret_value = self.node.delete(opts.id)
+        if ret_value is None:
+            sys.stderr.write('Error happened while deletion\n')
+        elif ret_value < 1:
+            sys.stderr.write('nothing was deleted. Does the uid exists?\n')
+        else:
+            sys.stdout.write('entry was deleted\n')
+
+    @options([make_option('-i', '--id', help='the uid you wish to edit'),
+             make_option('-t', '--datetime', help='Datetime of appointment'),
+             make_option('-d', '--duration', help='Duration of the appointment'),
+             make_option('-e', '--header', help='Header of the appointment',
+                         type="string"),
+             make_option('-c', '--comment', help='Comment of the appointment')
+             ])
+    def do_edit(self, command, opts):
+        if not self.node:
+            sys.stderr.write('Please first run init\n')
+            return False
+        if not opts.id:
+            sys.stderr.write('Please give the id you wish to edit\n')
+            return False
+
+        things_to_edit = {'datetime': opts.datetime,
+                          'duration': opts.duration,
+                          'header': opts.header,
+                          'comment': opts.comment}
+        for t in things_to_edit.keys():
+            if things_to_edit[t] is None:
+                del things_to_edit[t]
+        if not things_to_edit:
+            sys.stderr.write('please edit at least one value\n')
+        else:
+            if self.node.edit(opts.id, things_to_edit):
+                sys.stdout.write('Successfully edited %s\n' % opts.id)
+            else:
+                sys.stdout.write('Could not edit appointment\n')
 
     def __print_list(self, app_list):
         x = PrettyTable(['uid', 'datetime', 'duration', 'header', 'comment',

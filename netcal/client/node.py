@@ -3,7 +3,7 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 16:18:35
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 18:53:51
+# @Last Modified time: 2013-11-18 22:39:52
 import logging
 import xmlrpclib
 import sys
@@ -106,6 +106,27 @@ class Node(object):
         except:
             self.log.exception('cannot get list from database')
             return False
+        else:
+            return to_return
+
+    def delete(self, uid):
+        '''deletes the row with uid'''
+        try:
+            to_return = self.db.delete(uid)
+        except:
+            self.log.exception('cannot delete row with id %s', uid)
+            to_return = None
+        finally:
+            return to_return
+
+    def edit(self, uid, fields_to_edit):
+        '''updates the row with uid with values from fields to edit'''
+        self.log.debug('Editing appointment with uid %s', uid)
+        try:
+            to_return = self.db.update(uid, fields_to_edit)
+        except:
+            self.log.exception('Exception while editing')
+            return None
         else:
             return to_return
 

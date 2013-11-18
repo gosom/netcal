@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-16 16:44:10
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 18:55:36
+# @Last Modified time: 2013-11-18 22:41:36
 import sqlite3
 import logging
 import random
@@ -104,11 +104,44 @@ class DB(object):
         finally:
             cur.close()
 
-    def update(self, uid, dt, hea, com, ):
-        pass
+    def update(self, uid, things_to_edit):
+        sql = '''UPDATE `appointments`
+                SET '''
+        in_sql, params = [], []
+        for k, v in things_to_edit.iteritems():
+            in_sql.append('%s = ?' % k)
+            params.append(v)
+        sql += ','.join(in_sql)
+        cur = self.conn.cursor()
+        try:
+            cur.execute(sql, (params))
+        except:
+            self.log.exception('exception while updating table: %s :%s',
+                               sql, str(params))
+            raise
+        else:
+            self.conn.commit()
+            affected_rows = cur.rowcount
+            self.log.debug('updated %d rows', affected_rows)
+            return affected_rows
+        finally:
+            cur.close()
 
     def delete(self, uid):
-        pass
+        sql = 'DELETE FROM  `appointments` WHERE `uid` = ?'
+        cur = self.conn.cursor()
+        try:
+            cur.execute(sql, (uid,))
+        except:
+            self.log.exception('Cannot delete appointments: %s :%s',
+                               sql, str(uid))
+            raise
+        else:
+            self.conn.commit()
+            deleted_rows = cur.rowcount
+            return deleted_rows
+        finally:
+            cur.close()
 
     def get_one(self, uid):
         pass
