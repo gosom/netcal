@@ -3,12 +3,12 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 12:27:46
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 07:53:44
+# @Last Modified time: 2013-11-21 10:52:39
 import logging
 import os
 import datetime
 
-import utils
+import netcal.utils
 from netcal.dbo.db import DB
 
 
