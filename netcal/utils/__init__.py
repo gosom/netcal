@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Author: giorgos
+# @Date:   2013-11-16 16:44:10
+# @Last Modified by:   giorgos
+# @Last Modified time: 2013-11-21 09:15:29
+"""this module contains some helper functions"""
 import socket
 import string
 import random
@@ -21,5 +28,6 @@ def check_connection(host, port):
     return ok
 
 def generate_random_uid(length=8):
+    """generates random string of the specified length"""
     charset = string.ascii_letters + string.digits
     return ''.join(random.choice(charset) for _ in xrange(length))

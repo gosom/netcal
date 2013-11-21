@@ -3,7 +3,7 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 16:18:35
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 08:36:50
+# @Last Modified time: 2013-11-21 09:54:02
 import logging
 import xmlrpclib
 import sys
@@ -44,7 +44,7 @@ class Node(object):
         self.srv = Server(service=NetCalService(self.connected_clients,
                                                 db),
                           host=self.my_host,
-                          port=self.my_port,)
+                          port=self.my_port)
         self.srv.start()
 
     def connect(self, address):
@@ -79,6 +79,12 @@ class Node(object):
     # core methods
 
     def sync(self, address):
+        """synchronizes the local database with the one of
+        address.
+        Parameters:
+        :param address: the address (ip:port) of the remote host
+        returns: True on success else False
+        """
         self.log.debug('sync with %s', address)
         if address not in self.connected_clients:
             self.log.error('%s not in connected clients')
@@ -95,6 +101,7 @@ class Node(object):
         return True
 
     def leave(self):
+        """leaves the network"""
         self.connected = False
         for p in self.proxy_gen():
                 p.sign_off(self.my_address)
@@ -136,7 +143,7 @@ class Node(object):
             return True
 
     def edit(self, uid, fields_to_edit):
-        '''updates the row with uid with values from fields to edit'''
+        """updates the row with uid with values from fields to edit"""
         self.log.debug('Editing appointment with uid %s', uid)
         item = self.srv.service.edit(uid, fields_to_edit)
         if not item:
@@ -149,7 +156,7 @@ class Node(object):
             return True
 
     def view(self, uid):
-        self.log.debug('Returns appointment with id uid')
+        """Returns appointment with id uid"""
         try:
             item = self.db.get(uid)
         except:
@@ -169,11 +176,13 @@ class Node(object):
         return xmlrpclib.ServerProxy(url)
 
     def get_proxy(self, address):
+        """return a proxy for address. If does not exists it creates it"""
         if self.connected_clients[address] is None:
             self.connected_clients[address] = self.create_proxy(address)
         return self.connected_clients[address]
 
     def get_host_port(self, address):
+        """returns the host and the port of an address of the from ip:port"""
         target_list = address.split(':')
         host, port = target_list[0], int(target_list[1])
         return host, port
@@ -184,13 +193,6 @@ class Node(object):
             if a != self.my_address:
                 proxy = self.get_proxy(a)
                 yield proxy
-
-    def is_connected(func):
-        if not self.connected:
-            return False
-        def inner(*args, **kwargs):
-            return func(*args, **kwargs)
-        return inner
 
 
 if __name__ == '__main__':

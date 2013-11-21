@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-16 16:44:10
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 09:01:34
+# @Last Modified time: 2013-11-21 09:51:18
 import sqlite3
 import logging
 import random
@@ -13,6 +13,8 @@ import datetime
 import netcal.utils as utils
 
 class DB(object):
+    """This class contains methods to perform CRUD operations in an sqlite
+    database"""
 
     def __init__(self, fname):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -63,7 +65,6 @@ class DB(object):
                 (`uid`, `datetime`, `duration`, `header`,
                  `comment`, `last_modified`)
                 VALUES(?, ?, ?, ?, ?, ?)'''
-        print 'OK'
         params = (uid, dt, dur, he, com, last_modified)
         cur = self.conn.cursor()
         try:

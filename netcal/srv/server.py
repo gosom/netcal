@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-10 11:58:37
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-17 11:18:21
+# @Last Modified time: 2013-11-21 09:53:53
 import logging
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import threading
@@ -24,7 +24,7 @@ class Server(threading.Thread):
         assert port in xrange(0, 65535)
         self.service = service
         self.srv = SimpleXMLRPCServer((host, port),
-                                      logRequests=True)
+                                      logRequests=False)
         self.srv.register_instance(self.service)
         self.kill_received = False
         self.log.debug('Server is ready')
