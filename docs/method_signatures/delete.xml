@@ -1,0 +1,9 @@
+<?xml version='1.0'?>
+<methodCall>
+<methodName>delete</methodName>
+<params>
+<param>
+<value><string>13rfdgt5</string></value>
+</param>
+</params>
+</methodCall>

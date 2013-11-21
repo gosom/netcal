@@ -1,0 +1,6 @@
+<?xml version='1.0'?>
+<methodCall>
+<methodName>get_clients</methodName>
+<params>
+</params>
+</methodCall>

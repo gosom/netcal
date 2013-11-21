@@ -1,0 +1,24 @@
+<?xml version='1.0'?>
+<methodCall>
+<methodName>add</methodName>
+<params>
+<param>
+<value><string>2013-01-01</string></value>
+</param>
+<param>
+<value><string>0.5</string></value>
+</param>
+<param>
+<value><string>appointment header</string></value>
+</param>
+<param>
+<value><string>comment here</string></value>
+</param>
+<param>
+<value><string></string></value>
+</param>
+<param>
+<value><string></string></value>
+</param>
+</params>
+</methodCall>
