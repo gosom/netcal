@@ -26,7 +26,8 @@ Use ```help``` to see the available commands:
 5. delete
 6. edit
 7. debug
-8. quit
+9. sync
+10. quit
 
 To see the options in each command use `command -h`
 
@@ -39,10 +40,31 @@ the database test.sqlite
 
 `==>list`
 
-+-----+----------+----------+--------+---------+---------------+
-| uid | datetime | duration | header | comment | last_modified |
-+-----+----------+----------+--------+---------+---------------+
-+-----+----------+----------+--------+---------+---------------+
+You should get a table with the appointments(empty if the db is empty :) )
 
+To connect to another node you can:
+1. ``==>init -b localhost:12345 -d test.sqlite -c ip:port`
+    or
+2. after calling init to call the connect method `==>connect -c ip:port`
 
+*add* command:
 
+`==>add -h` to see help
+
+example:
+`add -t 2013-11-26 -d 2 -e "HPN exercise" -c ":)"`
+
+if you run the list command you will see the newly inserted entry.
+The entry contains a uid
+*edit* command:
+`edit -i uid -e "HPN 1st exercise"`
+
+*delete* command:
+`delete -i uid`
+
+*view* command:
+`view -i uid`
+
+*sync* command:
+the sync command is used to synchronize the local database with one
+of the remote nodes. You should not call it manually in normal situations.
