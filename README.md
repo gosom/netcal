@@ -35,7 +35,7 @@ then an interactive shell starts with promt ==>
 
 Use
 
-```help```
+`help`
 
 to see the available commands:
 
