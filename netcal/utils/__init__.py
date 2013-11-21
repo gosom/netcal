@@ -1,4 +1,6 @@
 import socket
+import string
+import random
 
 def check_connection(host, port):
     """returns True if the host is readchable
@@ -18,3 +20,6 @@ def check_connection(host, port):
         sock.close()
     return ok
 
+def generate_random_uid(length=8):
+    charset = string.ascii_letters + string.digits
+    return ''.join(random.choice(charset) for _ in xrange(length))

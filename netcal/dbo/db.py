@@ -3,12 +3,14 @@
 # @Author: giorgos
 # @Date:   2013-11-16 16:44:10
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 22:41:36
+# @Last Modified time: 2013-11-21 09:01:34
 import sqlite3
 import logging
 import random
 import string
 import datetime
+
+import netcal.utils as utils
 
 class DB(object):
 
@@ -29,11 +31,15 @@ class DB(object):
                  `duration` FLOAT,
                  `header`   TEXT,
                  `comment`  TEXT,
-                 `last_modified` DATETIME)
+                 `last_modified` DATETIME,
+                 `deleted` INTEGER)
                 '''
+        create_index = '''CREATE UNIQUE INDEX IF NOT EXISTS
+                            uid_index ON appointments (uid)'''
         cur = self.conn.cursor()
         try:
             cur.execute(sql)
+            cur.execute(create_index)
         except:
             self.log.exception('Exception creating table')
             raise
@@ -42,27 +48,34 @@ class DB(object):
         finally:
             cur.close()
 
-    def _generate_random_uid(self, length=8):
-        charset = string.ascii_letters + string.digits
-        return ''.join(random.choice(charset) for _ in xrange(length))
-
-    def insert(self, dt, dur, he, com):
+    def insert(self, dt, dur, he, com, uid=None, rowid=None, last_modified=None):
+        if not uid:
+            uid = utils.generate_random_uid()
+        if not last_modified:
+            last_modified = datetime.datetime.now().isoformat()
+        item = {'uid': uid,
+                'datetime': dt,
+                'duration': dur,
+                'header': he,
+                'comment': com,
+                'last_modified': last_modified}
         sql = '''INSERT INTO `appointments`
                 (`uid`, `datetime`, `duration`, `header`,
                  `comment`, `last_modified`)
                 VALUES(?, ?, ?, ?, ?, ?)'''
-
-        params = (self._generate_random_uid(), dt, dur, he, com,
-                  datetime.datetime.now().isoformat()
-                  )
+        print 'OK'
+        params = (uid, dt, dur, he, com, last_modified)
         cur = self.conn.cursor()
         try:
             cur.execute(sql, params)
+            rowid = cur.lastrowid
         except:
             self.log.exception('Exception inserting: %s: %s', sql, str(params))
             raise
         else:
             self.conn.commit()
+            item['rowid'] = rowid
+            return item
         finally:
             cur.close()
 
@@ -105,6 +118,8 @@ class DB(object):
             cur.close()
 
     def update(self, uid, things_to_edit):
+        if not things_to_edit.get('last_modified', None):
+            things_to_edit['last_modified'] = datetime.datetime.now().isoformat()
         sql = '''UPDATE `appointments`
                 SET '''
         in_sql, params = [], []
@@ -112,6 +127,8 @@ class DB(object):
             in_sql.append('%s = ?' % k)
             params.append(v)
         sql += ','.join(in_sql)
+        sql += ' WHERE `uid` = ?'
+        params.append(uid)
         cur = self.conn.cursor()
         try:
             cur.execute(sql, (params))
@@ -123,7 +140,7 @@ class DB(object):
             self.conn.commit()
             affected_rows = cur.rowcount
             self.log.debug('updated %d rows', affected_rows)
-            return affected_rows
+            return self.get(uid)
         finally:
             cur.close()
 
@@ -143,8 +160,38 @@ class DB(object):
         finally:
             cur.close()
 
-    def get_one(self, uid):
-        pass
+    def get(self, uid=None, rowid=None):
+        sql = '''SELECT `uid`, `datetime`, `duration`, `header`, `comment`,
+                `last_modified`
+                FROM appointments WHERE '''
+        if uid:
+            sql += '`uid` = ?'
+            params = (uid,)
+        elif rowid:
+            sql += '`rowid` = ?'
+            params = (rowid,)
+        else:
+            self.log.error('You must provide uid or rowid!')
+            raise Exception('You must provide uid or rowid!')
+        cur = self.conn.cursor()
+        item = None
+        try:
+            cur.execute(sql, (uid,))
+        except:
+            self.log.exception('Cannot select appointment')
+            raise
+        else:
+            r = cur.fetchone()
+            if r:
+                item = {'uid': r[0],
+                         'datetime': r[1],
+                         'duration': r[2],
+                         'header': r[3],
+                         'comment': r[4],
+                         'last_modified': r[5]}
+            return item
+        finally:
+            cur.close()
 
     def get_all(self):
         sql = '''SELECT `uid`, `datetime`, `duration`, `header`, `comment`,

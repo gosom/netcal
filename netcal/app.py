@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-17 13:43:30
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-18 22:43:01
+# @Last Modified time: 2013-11-21 09:01:41
 import time
 import logging
 import sys
@@ -13,17 +13,35 @@ from prettytable import PrettyTable
 
 from netcal.client.node import Node
 
+def check_init(func):
+    def wrapper(*args, **kwargs):
+        if args[0].node:
+            return func(*args, **kwargs)
+        sys.stderr.write('Please call init first!\n')
+        return False
+    return wrapper
+
+def check_connected(func):
+    def wrapper(*args, **kwargs):
+        if args[0].connected:
+            return func(*args, **kwargs)
+        sys.stderr.write('Please connect to the network first!\n')
+        return False
+    return wrapper
+
 class NetCalCli(Cmd):
     """Simple command processor example."""
 
     def preloop(self):
         self.prompt = "=>> "
         self.intro  = "Welcome to netcal!"
+        self.node = None
+        self.connected = False
 
     @options([make_option('-b', '--bind', action="store", help="bind address"),
               make_option('-d', '--db', action="store", help="db file"),
               make_option('-c', '--connect', help="connect address")
-             ], arg_desc = '(text to say)')
+             ])
     def do_init(self, command, opts):
         if not opts.bind:
             sys.stderr.write('Please provide a bind address\n')
@@ -44,6 +62,15 @@ class NetCalCli(Cmd):
             return False
         self.__connect(opts.connect)
 
+    @check_init
+    @options([make_option('-c', '--connect', help='Host to synchronize from')])
+    def do_sync(self, command, opts):
+        if not opts.connect:
+            sys.stderr('please specify -c option')
+            return False
+        self.node.sync(opts.connect)
+
+    @check_init
     @options([make_option('-t', '--datetime', help='Datetime of appointment'),
              make_option('-d', '--duration', help='''Duration of the appointment.
                          DEFAULT 1'''),
@@ -51,11 +78,8 @@ class NetCalCli(Cmd):
                          type="string"),
              make_option('-c', '--comment', help='''Comment of the appointment.
                          Default empty''')
-             ])
+             ], 'hello')
     def do_add(self, command, opts):
-        if not self.node:
-            sys.stderr.write('please first initialize calendar with init command\n')
-            return False
         if not opts.datetime:
             sys.stderr.write('please specify the datetime of the appointment [-t option]\n')
             return False
@@ -67,23 +91,45 @@ class NetCalCli(Cmd):
         if not opts.comment:
             opts.comment = ''
 
-        if not self.node.add(date_time=opts.datetime, duration=opts.duration,
-                         header=opts.header, comment=opts.comment):
+        if self.node.add(date_time=opts.datetime, duration=opts.duration,
+                         header=opts.header, comment=opts.comment) is False:
             sys.stderr.write('there was an error adding the appointment\n')
         else:
             sys.stdout.write('appointment was added\n')
 
+    @check_init
     @options([make_option('-a', '--all', action='store_true',
              help='Enable to list all appointments. DEFAULT TRUE'),
              ])
     def do_list(self, command, opts):
-        if not self.node:
-            sys.stderr('Please first call init \n')
         if opts.all:
             self.__print_list(self.node.list())
         else:
             sys.stderr.write('Not implemented yet\n')
 
+    @check_init
+    @options([make_option('-i', '--id', action='store',
+             help='id to delete'),
+             ])
+    def do_view(self, command, opts):
+        if not self.node:
+            sys.stderr.write('Please call init first\n')
+            return False
+        if not opts.id:
+            sys.stderr.write('Please give the id you wish to view\n')
+            return False
+        item = self.node.view(opts.id)
+        if not item:
+            sys.stderr.write('Does appointment with id %s exists?', opts.id)
+        else:
+            sys.stdout.write('uid: %s\n' % item['uid'])
+            sys.stdout.write('datetime: %s\t' % item['datetime'])
+            sys.stdout.write('duration: %s\n' % item['duration'])
+            sys.stdout.write('header: %s\n' % item['header'])
+            sys.stdout.write('comment: %s\n' % item['comment'])
+
+    @check_init
+    #@check_connected
     @options([make_option('-i', '--id', action='store',
              help='id to delete'),
              ])
@@ -102,6 +148,7 @@ class NetCalCli(Cmd):
         else:
             sys.stdout.write('entry was deleted\n')
 
+    @check_init
     @options([make_option('-i', '--id', help='the uid you wish to edit'),
              make_option('-t', '--datetime', help='Datetime of appointment'),
              make_option('-d', '--duration', help='Duration of the appointment'),
@@ -132,6 +179,7 @@ class NetCalCli(Cmd):
             else:
                 sys.stdout.write('Could not edit appointment\n')
 
+    # helpers
     def __print_list(self, app_list):
         x = PrettyTable(['uid', 'datetime', 'duration', 'header', 'comment',
                         'last_modified'])
@@ -150,9 +198,6 @@ class NetCalCli(Cmd):
             return False
         sys.stdout.write('connected to %s\n' % address)
         return True
-
-    def do_greet(self, line):
-        print "hello"
 
     def do_EOF(self, line):
         return True

@@ -3,10 +3,14 @@
 # @Author: Giorgos Komninos
 # @Date:   2013-11-10 12:27:46
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-17 11:57:09
+# @Last Modified time: 2013-11-21 07:53:44
 import logging
 import os
+import datetime
+
+import utils
 from netcal.dbo.db import DB
+
 
 class NetCalService(object):
     """Here are all the functions we want to
@@ -53,6 +57,35 @@ class NetCalService(object):
                 self.log.debug('there are no rows modified')
             return updated_rows if updated_rows else []
 
+    def add(self, date_time, duration, header, comment, uid, last_modified):
+        '''adds an appointment to the database and propagates
+        the appointment to the connected_clients'''
+        try:
+            item = self.db.insert(dt=date_time, dur=duration, he=header,
+                                  com=comment, uid=uid, last_modified=last_modified)
+        except Exception:
+            self.log.exception('cannot insert appointment: %s %s %s %s',
+                           date_time, duration, header, comment)
+            return False
+        else:
+            self.log.debug('appointment %s %s was added', item['datetime'],
+                           item['header'])
+            return item
 
+    def edit(self, uid, fields_to_edit):
+        try:
+            item = self.db.update(uid, fields_to_edit)
+        except:
+            self.log.exception('Exception while editing')
+            return False
+        else:
+            return item
 
-
+    def delete(self, uid):
+        try:
+            self.db.delete(uid)
+        except:
+            self.log.exception('cannot delete uid')
+            return False
+        else:
+            return True
