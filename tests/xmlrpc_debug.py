@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-21 21:49:06
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 22:09:42
+# @Last Modified time: 2013-11-22 18:48:14
 import xmlrpclib
 
 
@@ -55,8 +55,6 @@ def debug_delete():
     call_string = xmlrpclib.dumps((uid,), 'delete')
     with open('delete.xml', 'wb') as f:
         f.write(call_string.encode('utf8'))
-
-
 
 
 if __name__ == '__main__':
