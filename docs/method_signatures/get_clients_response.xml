@@ -1,0 +1,11 @@
+<?xml version='1.0'?>
+<methodResponse>
+<params>
+<param>
+<value><array><data>
+<value><string>localhost:12345</string></value>
+</data></array></value>
+</param>
+</params>
+</methodResponse>
+

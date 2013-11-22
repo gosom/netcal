@@ -113,4 +113,36 @@ All the methods here (except __init__ ) are exposed via xml-rpc.
 See docs/method_signatures for the xml-rpc requests needed to invoke these
 methods.
 
+A convenient way to check the xmlrpc server responses (for debugging) is to
+post the xml requests.
 
+Look at tests/manual_xmlrpc.py to see how to do it python.
+```python
+import sys
+import requests
+
+
+data = sys.stdin.read()
+url = sys.argv[1]
+try:
+    r = requests.post(url, data=data)
+except Exception as e:
+    print >> sys.stderr, str(e)
+
+print r.text
+```
+
+Here is the response:
+
+```xml
+<?xml version='1.0'?>
+<methodResponse>
+<params>
+<param>
+<value><array><data>
+<value><string>localhost:12345</string></value>
+</data></array></value>
+</param>
+</params>
+</methodResponse>
+```
