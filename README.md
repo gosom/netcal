@@ -121,9 +121,14 @@ Look at tests/manual_xmlrpc.py to see how to do it python.
 import sys
 import requests
 
+data = """<?xml version='1.0'?>
+<methodCall>
+<methodName>get_clients</methodName>
+<params>
+</params>
+</methodCall>"""
 
-data = sys.stdin.read()
-url = sys.argv[1]
+url = 'http://localhost:12345'
 try:
     r = requests.post(url, data=data)
 except Exception as e:
