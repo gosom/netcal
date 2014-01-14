@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: Giorgos Komninos
-# @Date:   2013-11-10 12:27:46
-# @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 10:52:39
 import logging
 import os
 import datetime
@@ -23,7 +19,7 @@ class NetCalService(object):
         self.connected_clients = connected_clients
         self.db = DB(db_name)
 
-    def get_clients(self,):
+    def get_clients(self,address):
         """Returns a list of all connected clients.
         In the xml-rpc this should be an array"""
         self.log.debug('returning %s', str(self.connected_clients.keys()))
@@ -33,59 +29,79 @@ class NetCalService(object):
         if address not in self.connected_clients:
             self.connected_clients[address] = None
             self.log.debug('adding %s to connected_clients', address)
-            return True
-        return False
+            return int(0)
+        return int(1)
 
     def sign_off(self, address):
         if address in self.connected_clients:
             del self.connected_clients[address]
             self.log.debug('Removed %s from connected_clients', address)
-            return True
-        return False
+            return int(0)
+        return int(1)
 
-    def pull(self, address, timestamp):
+        # pull
+    def getTableData(self, address):
         """pull function returns a snapshot of the changes
         of the database after timestamp"""
         if address not in self.connected_clients:
             self.log.error('%s is not on connected_clients')
             raise
         else:
-            updated_rows = self.db.get_updated(timestamp)
+            updated_rows = self.db.get_updated()
             if updated_rows:
                 self.log.debug('Returning %d updated_rows', len(updated_rows))
             else:
                 self.log.debug('there are no rows modified')
-            return updated_rows if updated_rows else []
 
-    def add(self, date_time, duration, header, comment, uid, last_modified):
+            ret = []
+            for r in updated_rows:
+                ret.append(r['uid'])
+                ret.append(r['date'])
+                ret.append(r['time'])
+                ret.append(r['duration'])
+                ret.append(r['header'])
+                ret.append(r['comment'])
+            return ret
+
+    def addRowClient(self, date, time, duration, header, comment):
         '''adds an appointment to the database and propagates
         the appointment to the connected_clients'''
         try:
-            item = self.db.insert(dt=date_time, dur=duration, he=header,
-                                  com=comment, uid=uid, last_modified=last_modified)
+            item = self.db.insert(dt=date, tm=time, dur=duration, he=header,
+                                  com=comment)
         except Exception:
-            self.log.exception('cannot insert appointment: %s %s %s %s',
-                           date_time, duration, header, comment)
-            return False
+            self.log.exception('cannot insert appointment: %s %s %s %s %s',
+                           date,time, duration, header, comment)
+            return int(1)
         else:
-            self.log.debug('appointment %s %s was added', item['datetime'],
-                           item['header'])
-            return item
+            return int(0)
 
-    def edit(self, uid, fields_to_edit):
+    def editRowClient(self, uid, date, time, duration, header, comment):
         try:
-            item = self.db.update(uid, fields_to_edit)
+            item = self.db.edit(uid, date, time, duration, header, comment)
         except:
             self.log.exception('Exception while editing')
-            return False
+            return int(1)
         else:
-            return item
+            return int(0)
 
-    def delete(self, uid):
+    def delete_all(self):
         try:
-            self.db.delete(uid)
+            self.db.delete_all()
         except:
-            self.log.exception('cannot delete uid')
+            self.log.exception('cannot delete')
             return False
         else:
             return True
+
+    def delRowClient(self, uid):
+        try:
+            ret_value = self.db.delete(uid)
+            if ret_value != 1:
+                raise Exception('Not exists')
+        except:
+            self.log.exception('cannot delete uid')
+            return int(1)
+        else:
+            return int(0)
+

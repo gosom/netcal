@@ -3,7 +3,7 @@
 # @Author: giorgos
 # @Date:   2013-11-17 13:43:30
 # @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 11:07:55
+# @Last Modified time: 2013-12-07 11:42:20
 import time
 import logging
 import sys
@@ -129,7 +129,7 @@ class NetCalCli(Cmd):
         if not item:
             self.__print_error('Does appointment with id %s exists?', opts.id)
         else:
-            sys.stdout.write('uid: %s\n' % item['uid'])
+            sys.stdout.write('id: %s\n' % item['id'])
             sys.stdout.write('datetime: %s\t' % item['datetime'])
             sys.stdout.write('duration: %s\n' % item['duration'])
             sys.stdout.write('header: %s\n' % item['header'])
@@ -200,11 +200,10 @@ class NetCalCli(Cmd):
 
     # helpers
     def __print_list(self, app_list):
-        x = PrettyTable(['uid', 'datetime', 'duration', 'header', 'comment',
-                        'last_modified'])
+        x = PrettyTable(['id', 'datetime', 'duration', 'header', 'comment'])
         for a in app_list:
-            x.add_row([a['uid'],a['datetime'], a['duration'], a['header'],
-                      a['comment'], a['last_modified']])
+            x.add_row([a['id'],a['datetime'], a['duration'], a['header'],
+                      a['comment']])
         sys.stdout.write(str(x))
         sys.stdout.write('\n')
 
@@ -225,6 +224,6 @@ class NetCalCli(Cmd):
         sys.stdout.write(self.colorize(msg, 'red'))
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     NetCalCli().cmdloop()
 

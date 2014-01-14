@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: giorgos
-# @Date:   2013-11-16 16:44:10
-# @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 09:15:29
 """this module contains some helper functions"""
 import socket
 import string

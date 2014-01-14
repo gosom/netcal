@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: giorgos
-# @Date:   2013-11-10 11:58:37
-# @Last Modified by:   giorgos
-# @Last Modified time: 2013-11-21 09:53:53
+
 import logging
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import threading
@@ -23,9 +20,18 @@ class Server(threading.Thread):
         self.log.debug('Starting xml-rpc server')
         assert port in xrange(0, 65535)
         self.service = service
-        self.srv = SimpleXMLRPCServer((host, port),
+        self.srv = SimpleXMLRPCServer((host, port),allow_none=True,
                                       logRequests=False)
         self.srv.register_instance(self.service)
+
+        self.srv.register_function(service.get_clients, 'handler1.get_clients')
+        self.srv.register_function(service.signin, 'handler1.signin')
+        self.srv.register_function(service.sign_off, 'handler1.sign_off')
+        self.srv.register_function(service.getTableData, 'handler1.getTableData') #pull
+        self.srv.register_function(service.addRowClient, 'handler1.addRowClient')
+        self.srv.register_function(service.editRowClient, 'handler1.editRowClient')
+        self.srv.register_function(service.delRowClient, 'handler1.delRowClient')
+
         self.kill_received = False
         self.log.debug('Server is ready')
 
