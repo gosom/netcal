@@ -3,6 +3,7 @@
 import time
 import logging
 import sys
+import argparse
 
 try:
     from cmd2 import Cmd, make_option, options
@@ -68,7 +69,11 @@ class NetCalCli(Cmd):
 
     @options([make_option('-b', '--bind', action="store", help="bind address"),
               make_option('-d', '--db', action="store", help="db file"),
-              make_option('-c', '--connect', help="connect address")
+              make_option('-c', '--connect', help="connect address"),
+              make_option('-t', '--token_ring', action='store_true',
+                help='specify to use token ring', default=False),
+              make_option('-s', '--token', action='store_true',
+                help='specify if it is the first node', default=False)
              ])
     def do_init(self, command, opts):
         if not opts.bind:
@@ -79,9 +84,11 @@ class NetCalCli(Cmd):
             return False
         # TODO validation of bind_address
         # here we start the actual program
-        self.node = Node(my_address=opts.bind, db=opts.db)
+        self.node = Node(my_address=opts.bind, db=opts.db, token_ring=opts.token_ring,
+                         token=opts.token)
         if opts.connect:
             self.__connect(opts.connect)
+
 
     @options([make_option('-c', '--connect', help='Connect to host')])
     def do_connect(self, command, opts):
@@ -275,7 +282,19 @@ class NetCalCli(Cmd):
     def __print_error(self, msg):
         sys.stdout.write(self.colorize(msg, 'red'))
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--bind', help='ip:port', required=False)
+    parser.add_argument('-d', '--db', help='database file', required=False)
+    parser.add_argument('-v', '--verbose', help='Use for verbose mode',
+                        default=0, action="count")
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    NetCalCli().cmdloop()
+    level = logging.DEBUG
+    logging.basicConfig(level=level)
+
+    fake_shell = NetCalCli()
+    fake_shell.cmdloop()
 

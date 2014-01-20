@@ -5,27 +5,32 @@ import xmlrpclib
 import sys
 import time
 import atexit
+from collections import OrderedDict
+import threading
+
+
+import netcal.utils as utils
+from netcal.dbo.db import DB
 
 from netcal.srv.server import Server
 from netcal.srv.services import NetCalService
-import netcal.utils as utils
-from netcal.dbo.db import DB
 
 
 class Node(object):
 
-    def __init__(self, my_address, db):
+    def __init__(self, my_address, db, **kwargs):
         """Node object.
         Parameters:
         :my_address : ip:port
         :db : the sqlite file to store local database
         """
+
         self.log = logging.getLogger(self.__class__.__name__)
         self.log.debug('Initializing Node')
         self.my_address = my_address
         self.db = DB(fname=db)
         self.my_host, self.my_port = self.get_host_port(self.my_address)
-        self.connected_clients = {}
+        self.connected_clients = OrderedDict()
         self.connected_clients[self.my_address] = None # we are connected
         self.connected = False
 
@@ -35,13 +40,32 @@ class Node(object):
         self.proxies = []
         atexit.register(self.leave) # signoff when program terminates
 
+
+        # for token ring
+        if 'token_ring' in kwargs and kwargs['token_ring']:
+            from netcal.client.token_ring import TokenRing
+            import Queue
+            self.request_queue = Queue.Queue()
+            self.result_queue = Queue.Queue()
+            self.token_ring = TokenRing(myaddress=self.my_address,
+                                        peers=self.connected_clients,
+                                        token=kwargs.get('token', False),
+                                        req_q=self.request_queue,
+                                        res_q=self.result_queue)
+            self.use_token_ring = True
+            self.token_ring.start()
+        else:
+            self.use_token_ring = False
+
         # start a new thread for the server
         self.log.debug('Starting server')
         self.srv = Server(service=NetCalService(self.connected_clients,
-                                                db),
+                                                db,token_ring=self.token_ring),
                           host=self.my_host,
                           port=self.my_port)
         self.srv.start()
+
+
 
     def connect(self, address):
         """method to join the calendar network.
@@ -105,15 +129,13 @@ class Node(object):
     def add(self, date, time, duration, header, comment):
         '''adds an appointment to the database and propagates
         the appointment to the connected_clients'''
-        item = self.srv.service.addRowClient(date, time, duration, header, comment)
-        # if not item:
-        if item is 1:
-            self.log.error('cannot add to database')
-            return int(1)
+        if self.use_token_ring:
+            func_args = (date, time, duration, header, comment)
+            self.__execute_token_ring_cmd("handler1.addRowClient", func_args)
         else:
             for p in self.proxy_gen():
                 p.handler1.addRowClient(date, time, duration, header, comment)
-            return int(0)
+        return int(0)
 
     def list(self):
         '''returns a list with all appointments'''
@@ -133,26 +155,25 @@ class Node(object):
 
     def delRowClient(self, uid):
         '''deletes the row with uid'''
-        r = self.srv.service.delRowClient(uid)
-        if r is 1:
-            self.log.error('cannot delete row with id %s', uid)
-            to_return = None
+        self.log.debug('Deleting appointment with uid %s', uid)
+        if self.use_token_ring:
+            func_args = (uid,)
+            self.__execute_token_ring_cmd("handler1.delRowClient", func_args)
         else:
             for p in self.proxy_gen():
                 p.handler1.delRowClient(uid)
-            return True
+        return True
 
     def edit(self, uid, date, time, duration, header, comment):
         """updates the row with uid with values from fields to edit"""
         self.log.debug('Editing appointment with uid %s', uid)
-        item = self.srv.service.editRowClient(uid, date, time, duration, header, comment)
-        if item is 1:
-            self.log.error('Cannot edit database')
-            return False
+        if self.use_token_ring:
+            func_args = (uid, date, time, duration, header, comment)
+            self.__execute_token_ring_cmd("handler1.editRowClient", func_args)
         else:
             for p in self.proxy_gen():
                 p.handler1.editRowClient(uid, date, time, duration, header, comment)
-            return True
+        return True
 
     def view(self, uid):
         """Returns appointment with id uid"""
@@ -165,6 +186,20 @@ class Node(object):
             return item
 
     # helper methods
+
+    def __execute_token_ring_cmd(self, cmd_name, cmd_args):
+        self.log.debug('Putting %s command to queue', cmd_name)
+        command = []
+        for p in self.proxy_gen():
+            command.append((p, cmd_name, cmd_args))
+        self.request_queue.put(command)
+        while True:
+            self.log.debug('waiting token')
+            completed = self.result_queue.get(block=True)
+            self.result_queue.task_done()
+            if completed:
+                break
+        self.log.debug('Finished executing %s', cmd_name)
 
     def create_proxy(self, address):
         """Creates a proxy object for the address"""
@@ -189,9 +224,9 @@ class Node(object):
     def proxy_gen(self):
         """generates proxies"""
         for a in self.connected_clients:
-            if a != self.my_address:
-                proxy = self.get_proxy(a)
-                yield proxy
+            #if a != self.my_address:
+            proxy = self.get_proxy(a)
+            yield proxy
 
 
 if __name__ == '__main__':

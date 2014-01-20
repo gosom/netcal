@@ -11,6 +11,10 @@
         "python_interpreter": "/home/giorgos/.virtualenvs/netcal/bin/python",
         "complete_all_parameters": true,
     },
+    "Python": {
+        "python": "/home/giorgos/.virtualenvs/netcal/bin/python/bin/python",
+        "pythonExtraPaths": []
+    },
 
     "build_systems":
 

@@ -31,6 +31,7 @@ class Server(threading.Thread):
         self.srv.register_function(service.addRowClient, 'handler1.addRowClient')
         self.srv.register_function(service.editRowClient, 'handler1.editRowClient')
         self.srv.register_function(service.delRowClient, 'handler1.delRowClient')
+        self.srv.register_function(service.tokenReceived, 'handler1.tokenReceived')
 
         self.kill_received = False
         self.log.debug('Server is ready')

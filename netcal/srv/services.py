@@ -12,12 +12,13 @@ class NetCalService(object):
     """Here are all the functions we want to
     expose via xml-rpc"""
 
-    def __init__(self, connected_clients, db_name):
+    def __init__(self, connected_clients, db_name, token_ring):
         """connectected clients is a dict of
         the nodes connected to the network"""
         self.log = logging.getLogger(self.__class__.__name__)
         self.connected_clients = connected_clients
         self.db = DB(db_name)
+        self.token_ring = token_ring
 
     def get_clients(self,address):
         """Returns a list of all connected clients.
@@ -104,4 +105,9 @@ class NetCalService(object):
             return int(1)
         else:
             return int(0)
+
+    def tokenReceived(self, address):
+        #self.log.debug('Received token from %s', address)
+        self.token_ring.token = True
+
 
