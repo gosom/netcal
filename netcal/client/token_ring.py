@@ -94,8 +94,8 @@ class TokenRing(threading.Thread):
 		if not next_address:
 			next_address = self.next_peer()
 		if next_address:
-			self.log.debug('We should forward the token to next: %s',
-				next_address)
+			#self.log.debug('We should forward the token to next: %s',
+			#	next_address)
 			proxy =  self.create_proxy(next_address)
 			try:
 				proxy.handler1.tokenReceived(self.myaddress)
