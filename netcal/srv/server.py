@@ -26,12 +26,15 @@ class Server(threading.Thread):
 
         self.srv.register_function(service.get_clients, 'handler1.get_clients')
         self.srv.register_function(service.signin, 'handler1.signin')
+        self.srv.register_function(service.rclient_signin, 'handler1.requestClientSignIn')
         self.srv.register_function(service.sign_off, 'handler1.sign_off')
         self.srv.register_function(service.getTableData, 'handler1.getTableData') #pull
         self.srv.register_function(service.addRowClient, 'handler1.addRowClient')
         self.srv.register_function(service.editRowClient, 'handler1.editRowClient')
         self.srv.register_function(service.delRowClient, 'handler1.delRowClient')
         self.srv.register_function(service.tokenReceived, 'handler1.tokenReceived')
+        self.srv.register_function(service.sign_in_approved, 'handler1.signInApproved')
+        self.srv.register_function(service.function_to_perform, 'handler1.functionsToPerform')
 
         self.kill_received = False
         self.log.debug('Server is ready')

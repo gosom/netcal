@@ -100,7 +100,10 @@ class NetCalCli(Cmd):
 
     # @options([make_option('-l', '--leave', help='Connect to host')])
     def do_leave(self, command):
-        self.node.leave()
+        if self.node.connected:
+            self.node.leave()
+        else:
+             self.__print_error('You are not connected\n')
 
     @check_init
     @options([make_option('-c', '--connect', help='Host to synchronize from')])
