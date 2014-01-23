@@ -160,7 +160,7 @@ class Node(object):
                 self.token_ring.forward_token(next_address=next_address)
             else:
                 for p in self.proxy_gen(exclude=[self.my_address]):
-                    p.handler1.sign_off(*func_args)
+                    p.handler1.sign_off(self.my_address)
             self.connected = False
         self.log.debug('Node left network')
 
