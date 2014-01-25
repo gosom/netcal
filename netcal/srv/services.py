@@ -138,4 +138,13 @@ class NetCalService(object):
                                comment=ap_comment)
         return 0
 
+    def cs_request_received(self, resource_id, remote_host, remote_clock):
+        self.node.cs_request_received(resource_id, remote_host, remote_clock)
+        return 0
+
+    def reply_received(self, address):
+        self.log.debug('Received reply from %s', address)
+        self.node.reply_received(address)
+        return 0
+
 

@@ -8,7 +8,7 @@ import Queue
 
 class TokenRing(threading.Thread):
 
-	def __init__(self, myaddress, peers, token, req_q, res_q):
+	def __init__(self, myaddress, peers, req_q, res_q):
 		"""Peers is the connected clients dcitionary"""
 		threading.Thread.__init__(self)
 		self.log = logging.getLogger(self.__class__.__name__)
@@ -17,7 +17,7 @@ class TokenRing(threading.Thread):
 		self.myaddress = myaddress
 		self.peers = peers
 		self.wait_time = 1
-		self.token = token
+		self.token = False
 		self.commands = req_q
 		self.results = res_q
 		self.signin_q = Queue.Queue()

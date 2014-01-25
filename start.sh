@@ -71,9 +71,8 @@ class NetCalCli(Cmd):
               make_option('-d', '--db', action="store", help="db file"),
               make_option('-c', '--connect', help="connect address"),
               make_option('-t', '--token_ring', action='store_true',
-                help='specify to use token ring', default=False),
-              make_option('-s', '--token', action='store_true',
-                help='specify if it is the first node', default=False)
+                help='specify to use token ring otherwise it is using RA',
+                default=False)
              ])
     def do_init(self, command, opts):
         if not opts.bind:
@@ -84,8 +83,7 @@ class NetCalCli(Cmd):
             return False
         # TODO validation of bind_address
         # here we start the actual program
-        self.node = Node(my_address=opts.bind, db=opts.db, token_ring=opts.token_ring,
-                         token=opts.token)
+        self.node = Node(my_address=opts.bind, db=opts.db, token_ring=opts.token_ring)
         if opts.connect:
             self.__connect(opts.connect)
 

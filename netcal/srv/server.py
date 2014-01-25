@@ -35,6 +35,8 @@ class Server(threading.Thread):
         self.srv.register_function(service.tokenReceived, 'handler1.tokenReceived')
         self.srv.register_function(service.sign_in_approved, 'handler1.signInApproved')
         self.srv.register_function(service.function_to_perform, 'handler1.functionsToPerform')
+        self.srv.register_function(service.cs_request_received, 'hanler1.csRequestReceived')
+        self.srv.register_function(service.reply_received, 'handler1.replyReceived')
 
         self.kill_received = False
         self.log.debug('Server is ready')

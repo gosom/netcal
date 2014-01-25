@@ -16,6 +16,7 @@ from netcal.dbo.db import DB
 
 from netcal.srv.server import Server
 from netcal.srv.services import NetCalService
+from netcal.client.lamport import LamportClock
 
 
 class Node(object):
@@ -45,10 +46,10 @@ class Node(object):
 
         #mutual exclusion algs
         self.use_token_ring = kwargs.get('token_ring', False)
-        self.use_ra = False
-
         if self.use_token_ring:
             self.__init_token_ring()
+        else:
+            self.__init_ra()
 
         # start a new thread for the server
         self.log.debug('Starting server')
@@ -65,12 +66,23 @@ class Node(object):
         self.request_queue = Queue.Queue()
         self.result_queue = Queue.Queue()
         self.token_ring = TokenRing(myaddress=self.my_address,
-                                        peers=self.connected_clients,
-                                        token=False,
-                                        req_q=self.request_queue,
-                                        res_q=self.result_queue)
+                                    peers=self.connected_clients,
+                                    req_q=self.request_queue,
+                                    res_q=self.result_queue)
 
-
+    def __init_ra(self):
+        self.log.debug('Initializing Ricart Agrawala')
+        from netcal.client.ra import Ra
+        self.ra_commands = Queue.Queue()
+        self.ra_results = Queue.Queue()
+        self.ra_thread = Ra(node=self, command_queue=self.ra_commands,
+                            results_queue=self.ra_results)
+        self.ra_thread.start()
+        self.lc = LamportClock(clock=0, own_id=self.my_address)
+        self.replies_expected = 0
+        self.resources_want_to_access = set()
+        self.resources_accessing = set()
+        self.request_queue_ra = Queue.Queue()
 
     def signin(self, address):
         self.log.debug('Doing actual signin')
@@ -86,7 +98,6 @@ class Node(object):
         for p in self.proxy_gen(exclude=[self.my_address,]): # do not signin to me and master
             p.handler1.signin(self.my_address)
         self.sync(address)
-
         self.connected = True
 
     def connect(self, address):
@@ -117,7 +128,7 @@ class Node(object):
             self.token_ring.start()
             ret_value = True
         else:
-            raise NotImplementedError
+            self.signin(address)
         while not self.connected:
             time.sleep(0.1)
         return ret_value
@@ -159,6 +170,7 @@ class Node(object):
                 self.send_release()
                 self.token_ring.forward_token(next_address=next_address)
             else:
+                self.ra_thread.kill = True
                 for p in self.proxy_gen(exclude=[self.my_address]):
                     p.handler1.sign_off(self.my_address)
             self.connected = False
@@ -167,14 +179,13 @@ class Node(object):
     def add(self, date, time, duration, header, comment):
         '''adds an appointment to the database and propagates
         the appointment to the connected_clients'''
+        func_args = (int(1), int(0), date, time, duration, header, comment)
         if self.use_token_ring:
-            func_args = (int(1), int(0), date, time, duration, header, comment)
             cmd_dict = OrderedDict()
             cmd_dict["handler1.functionsToPerform"] =  func_args
             self.__execute_token_ring_cmd(cmd_dict)
         else:
-            for p in self.proxy_gen():
-                p.handler1.addRowClient(date, time, duration, header, comment)
+            self.__execute_ra_cmd('*', func_args)
         return int(0)
 
     def list(self):
@@ -196,27 +207,26 @@ class Node(object):
     def delRowClient(self, uid):
         '''deletes the row with uid'''
         self.log.debug('Deleting appointment with uid %s', uid)
+        func_args = (int(2), int(uid), '', '', '', '', '')
         if self.use_token_ring:
-            func_args = (int(2), int(uid), '', '', '', '', '')
             cmd_dict = OrderedDict()
             cmd_dict["handler1.functionsToPerform"] =  func_args
             self.__execute_token_ring_cmd(cmd_dict)
-        else:
-            for p in self.proxy_gen():
-                p.handler1.delRowClient(uid)
+        else: # Ricart - Agrawala
+            self.__execute_ra_cmd(uid, func_args)
         return True
 
     def edit(self, uid, date, time, duration, header, comment):
         """updates the row with uid with values from fields to edit"""
         self.log.debug('Editing appointment with uid %s', uid)
+        func_args = (int(3), int(uid), date, time, duration, header, comment)
         if self.use_token_ring:
-            func_args = (int(3), int(uid), date, time, duration, header, comment)
+            #func_args = (int(3), int(uid), date, time, duration, header, comment)
             cmd_dict = OrderedDict()
             cmd_dict["handler1.functionsToPerform"] =  func_args
             self.__execute_token_ring_cmd(cmd_dict)
-        else:
-            for p in self.proxy_gen():
-                p.handler1.editRowClient(uid, date, time, duration, header, comment)
+        else: # Ricart - Agrawala
+            self.__execute_ra_cmd(uid, func_args)
         return True
 
     def view(self, uid):
@@ -245,13 +255,29 @@ class Node(object):
             break
         self.log.debug('Completed %s', cmd_name_dict)
 
+    def __execute_ra_cmd(self, resource_id, func_args):
+        self.send_cs_request(resource_id=resource_id)
+        self.resources_accessing.add(resource_id)
+        self.resources_want_to_access.remove(resource_id)
+        for p in self.proxy_gen():
+            p.handler1.functionsToPerform(*func_args)
+        self.resources_accessing.remove(resource_id)
+        while True:
+            try:
+                request = self.request_queue_ra.get(block=False)
+            except Queue.Empty:
+                break
+            else:
+                resource_id, remote_host, remote_clock = request
+                self.send_ok(to=[remote_host])
+
     def create_proxy(self, address):
         """Creates a proxy object for the address"""
         host, port = self.get_host_port(address)
         assert utils.check_connection(host, port) == True
         url = 'http://%s:%d' % (host, port)
         self.log.debug('Creating proxy: %s', url)
-        return xmlrpclib.ServerProxy(url,allow_none=True)
+        return xmlrpclib.ServerProxy(url, allow_none=True)
 
     def get_proxy(self, address):
         """return a proxy for address. If does not exists it creates it"""
@@ -284,6 +310,47 @@ class Node(object):
         res = self.result_queue.get(block=True)
         self.result_queue.task_done()
 
+    def send_cs_request(self, resource_id):
+        self.log.debug('Sending cs_request for %s', resource_id)
+        self.lc.clock += 1
+        self.replies_expected = len(self.connected_clients)
+        self.resources_want_to_access.add(resource_id)
+        self.ra_commands.put(('CS', resource_id, self.my_address,
+                             self.lc.clock))
+        while self.replies_expected > 0:
+            self.log.debug('Replies: %d', self.replies_expected)
+            time.sleep(5)
+        self.log.debug('Ready to access cs')
+        return True
+
+    def cs_request_received(self, resource_id, remote_host, remote_clock):
+        self.log.debug('Received Cs request for %s from %s with clock %d',
+                       resource_id, remote_host, remote_clock)
+        self.lc.clock = max(remote_clock, self.lc.clock) + 1
+        if not resource_id in self.resources_accessing and\
+         not resource_id in self.resources_want_to_access:
+            self.log.debug('not accessing resource %s and do not want to access it', resource_id)
+            self.send_ok(to=[remote_host])
+        elif resource_id in self.resources_accessing:
+            request = (resource_id, remote_host, remote_clock)
+            self.log.debug('Currently using resource %s', resource_id)
+            self.request_queue_ra.put(request)
+        elif resource_id in self.resources_want_to_access:
+            self.log.debug('want to access resource %s too', resource_id)
+            remote_lc = LamportClock(clock=remote_clock, own_id=remote_host)
+            if remote_lc < self.lc:
+                self.send_ok(to=[remote_host])
+            else:
+                request = (resource_id, remote_host, remote_clock)
+                self.request_queue_ra.put(request)
+
+    def send_ok(self, to):
+        self.ra_commands.put(('SO', to))
+
+    def reply_received(self, address):
+        self.log.debug('Reply received')
+        self.replies_expected -= 1
+        time.sleep(1)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
