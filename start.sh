@@ -248,6 +248,9 @@ class NetCalCli(Cmd):
         else:
             self.node.log.setLevel(logging.INFO)
 
+    @check_init
+    def do_lc(self, command):
+        sys.stdout.write(str(self.node.lc.clock) + '\n')
 
     # helpers
     def __print_connected_clients(self):
@@ -293,7 +296,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    level = logging.DEBUG
+    level = logging.INFO
     logging.basicConfig(level=level)
 
     fake_shell = NetCalCli()

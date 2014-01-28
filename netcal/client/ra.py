@@ -35,10 +35,11 @@ class Ra(threading.Thread):
             elif isinstance(item, (tuple, list)):
                 if item[0] == 'CS':
                     command, resource_id, own_id, clock = item
-                    #self.log.debug('Command is CS')
+
+                    self.log.debug('Command is CS %s', type(resource_id))
                     for address in self.node.connected_clients:
                         p = self.create_proxy(address)
-                        p.hanler1.csRequestReceived(resource_id, own_id, clock)
+                        p.handler1.csRequestReceived(resource_id, own_id, clock)
                 elif item[0] == 'SO':
                     #self.log.debug('Sending OK')
                     command, hosts = item

@@ -128,7 +128,12 @@ class Node(object):
             self.token_ring.start()
             ret_value = True
         else:
-            self.signin(address)
+            if not address or address.lower() == self.my_address.lower():
+                self.connected_clients[self.my_address] = None
+                self.connected = True
+            else:
+                self.signin(address)
+            ret_value = True
         while not self.connected:
             time.sleep(0.1)
         return ret_value
